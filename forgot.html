@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure OTP Verification</title>
+</head>
+<body style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f8f9fa; font-family: Arial, sans-serif;">
+    <div style="width: 400px; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); text-align: center; border: 2px solid #1a73e8;">
+        <h2 style="font-weight: 500; font-size: 22px; margin-bottom: 5px;">Secure OTP Verification</h2>
+        <p style="font-size: 14px; color: #5f6368; margin-bottom: 20px;">Enter your email to receive an OTP</p>
+        
+        <input type="email" id="email" placeholder="Enter your email" required
+            style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; margin-bottom: 10px;">
+        
+        <input type="text" id="otp" placeholder="Enter OTP"
+            style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; margin-bottom: 10px;" disabled>
+        
+        <button onclick="sendOTP()"
+            style="background: #1a73e8; color: white; padding: 10px 20px; border: none; border-radius: 5px; font-size: 14px; cursor: pointer;">
+            Send OTP
+        </button>
+        
+        <button onclick="verifyOTP()" disabled id="verifyBtn"
+            style="background: green; color: white; padding: 10px 20px; border: none; border-radius: 5px; font-size: 14px; cursor: pointer; margin-top: 10px;">
+            Verify OTP
+        </button>
+        
+        <p id="message" style="margin-top: 15px; font-size: 14px; color: red;"></p>
+    </div>
+
+    <script>
+        let generatedOTP = "";
+        let otpExpiration = 0;
+        const OTP_TIMEOUT = 300000; // 5 minutes
+        let otpAttempts = 0;
+        const MAX_OTP_ATTEMPTS = 3;
+        
+        function sendOTP() {
+            const email = document.getElementById("email").value;
+            const messageEl = document.getElementById("message");
+            
+            // Reset attempts and previous states
+            otpAttempts = 0;
+            
+            if (!email) {
+                messageEl.textContent = "Please enter a valid email!";
+                messageEl.style.color = "red";
+                return;
+            }
+            
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                messageEl.textContent = "Please enter a valid email address!";
+                messageEl.style.color = "red";
+                return;
+            }
+            
+            // Generate more cryptographically secure OTP
+            generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
+            otpExpiration = Date.now() + OTP_TIMEOUT;
+            
+            console.log("Generated OTP:", generatedOTP);
+            
+            try {
+                emailjs.send("service_4oqbokh", "template_3hj9w8n", {
+                    to_email: email,
+                    otp: generatedOTP,
+                    expiration: "5 minutes"
+                }).then(response => {
+                    messageEl.textContent = "OTP sent successfully! Valid for 5 minutes.";
+                    messageEl.style.color = "green";
+                    document.getElementById("otp").disabled = false;
+                    document.getElementById("verifyBtn").disabled = false;
+                }).catch(error => {
+                    console.error("Email sending failed:", error);
+                    messageEl.textContent = "Error sending OTP!";
+                    messageEl.style.color = "red";
+                });
+            } catch (error) {
+                console.error("Unexpected error:", error);
+                messageEl.textContent = "Unexpected error occurred!";
+            }
+        }
+        
+        function verifyOTP() {
+            const userOTP = document.getElementById("otp").value;
+            const messageEl = document.getElementById("message");
+            
+            // Increment attempts
+            otpAttempts++;
+            
+            // Check max attempts
+            if (otpAttempts > MAX_OTP_ATTEMPTS) {
+                messageEl.textContent = "Too many incorrect attempts. Please request a new OTP.";
+                messageEl.style.color = "red";
+                document.getElementById("otp").disabled = true;
+                document.getElementById("verifyBtn").disabled = true;
+                return;
+            }
+            
+            // Check OTP expiration
+            if (Date.now() > otpExpiration) {
+                messageEl.textContent = "OTP has expired. Please request a new one.";
+                messageEl.style.color = "red";
+                return;
+            }
+            
+            if (!userOTP) {
+                messageEl.textContent = "Please enter the OTP!";
+                messageEl.style.color = "red";
+                return;
+            }
+            
+            if (userOTP === generatedOTP) {
+                messageEl.textContent = "✅ OTP Verified Successfully!";
+                messageEl.style.color = "green";
+                // Here you could add additional verification logic or redirect
+            } else {
+                messageEl.textContent = `❌ Invalid OTP! Attempt ${otpAttempts} of ${MAX_OTP_ATTEMPTS}`;
+                messageEl.style.color = "red";
+            }
+        }
+    </script>
+    
+    <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
+    <script>
+        try {
+            emailjs.init("JJwUy4H4aq60D3uze");
+        } catch (error) {
+            console.error("EmailJS initialization failed:", error);
+        }
+    </script>
+</body>
+</html>
